@@ -1,0 +1,24 @@
+//Identifying COM hijacking via InprocServer32 and LocalServer32 (especially by .NET or PowerShell-based malware), and uncommon registry-based persistence through keys like DelegateExecute, TreatAs, and ScriptletURL.
+//https://bohops.com/2018/06/28/abusing-com-registry-structure-clsid-localserver32-inprocserver32/
+//https://bohops.com/2018/08/18/abusing-the-com-registry-structure-part-2-loading-techniques-for-evasion-and-persistence/
+//https://www.elastic.co/docs/reference/security/prebuilt-rules/rules/windows/persistence_suspicious_com_hijack_registry
+
+let dotNetOrPowerShellPersistence =
+    DeviceRegistryEvents
+    | where isnotempty(RegistryValueData)
+    | where RegistryKey has_any ("HKEY_CURRENT_USER", "HKEY_USERS")
+    | where RegistryKey has_any ("LocalServer32", "InprocServer32")
+    | where InitiatingProcessAccountDomain != "nt authority"
+    | where InitiatingProcessVersionInfoProductName has_any (".NET", "powershell")
+        or InitiatingProcessVersionInfoInternalFileName has_any (".NET", "powershell")
+        or InitiatingProcessVersionInfoOriginalFileName has_any (".NET", "powershell")
+    | extend DetectionType = "PowerShell/.NET - COM Persistence";
+let suspiciousKeyPersistence =
+    DeviceRegistryEvents
+    | where isnotempty(RegistryValueData)
+    | where RegistryKey has_any ("HKEY_CURRENT_USER", "HKEY_USERS")
+    | where RegistryKey has_any ("DelegateExecute", "TreatAs", "ScriptletURL")
+    | where InitiatingProcessAccountDomain != "nt authority"
+    | extend DetectionType = "Uncommon Persistence Key";
+dotNetOrPowerShellPersistence
+| union suspiciousKeyPersistence
