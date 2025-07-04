@@ -25,7 +25,7 @@ let startupRegistryList = dynamic([
     'HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\RunOnce',
     'HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx'
   ]);
-//The following let statements are to used to input items of known good to reduce noise and filter for suspicious entried
+//The following let statements are used list items of known good to reduce noise and filter for suspicious entries
 //ActingProcessCommandLine Exclusion List 
 let exclusionList_APCL = dynamic([
     'ACTINGPROCESSCOMMANDLINE'
