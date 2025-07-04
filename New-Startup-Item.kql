@@ -1,3 +1,5 @@
+//This KQL query detects file creation events in common Windows startup directories—both fixed and user-specific—excluding known legitimate items, to help identify potentially unauthorized persistence mechanisms.
+
 //Set the full paths for startup items
 let startupFullPaths = dynamic([ 
     "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp",
