@@ -1,0 +1,67 @@
+// List of startup registry keys to monitor
+let startupRegistryList = dynamic([
+    'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run',
+    'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce',
+    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run',
+    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce',
+    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx',
+    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce',
+    'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce',
+    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunServices',
+    'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunServices',
+    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run',
+    'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run',
+    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Userinit',
+    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Shell',
+    'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows',
+    'HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager',
+    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run',
+    'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run',
+    'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders',
+    'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders',
+    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders',
+    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders',
+    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Run',
+    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\RunOnce',
+    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx'
+  ]);
+//The following let statements are to used to input items of known good to reduce noise and filter for suspicious entried
+//ActingProcessCommandLine Exclusion List 
+let exclusionList_APCL = dynamic([
+    'ACTINGPROCESSCOMMANDLINE'
+  ]);
+//ActingProcessName Exclusion List
+let exclusionList_APN = dynamic([
+    'ACTINGPROCESSNAME'
+  ]);
+//RegistryValueData Exclusion List
+let exclusionList_RVD = dynamic([
+    'REGISTRYVALUEDATA'
+  ]);
+ //ActingProcessSHA256 Exclusion List
+let exclusionList_APSHA256 = dynamic([
+    'HASH'
+  ]);
+_ASim_RegistryEvent
+| where EventType in ('RegistryValueSet', 'RegistryKeyCreated') and RegistryKey has_any (startupRegistryList)
+| where not (ActingProcessCommandLine has_any (exclusionList_APCL))
+| where not (ActingProcessName has_any(exclusionList_APN))
+| where not (RegistryValueData has_any(exclusionList_RVD))
+| where not (ActingProcessSHA256 has_any(exclusionList_APSHA256))
+| project
+Timestamp,
+ReportId,
+DeviceName,
+DeviceId,
+User,
+UserId,
+EventType,
+RegistryKey,
+RegistryValueName,
+RegistryValueType,
+RegistryValueData,
+ActingProcessFileName,
+ActingProcessSHA256,
+ActingProcessCommandLine,
+ParentProcessName,
+ParentProcessCreationTime
