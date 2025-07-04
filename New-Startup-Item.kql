@@ -8,7 +8,7 @@ let startupFullPaths = dynamic([
     ]);
 //Set an exclusion list for items that are expected
 let exclusionList = dynamic([
-    "EXCLUSION_ITEM",
+    "EXCLUSION_ITEM"
     ]);
 //Search for FileCreated events exlcuding the exclusionList and including the startupFullPaths list and regex paths
 DeviceFileEvents
