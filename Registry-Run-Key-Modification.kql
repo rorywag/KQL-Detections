@@ -40,7 +40,7 @@ let exclusionList_RVD = dynamic([
   ]);
  //ActingProcessSHA256 Exclusion List
 let exclusionList_APSHA256 = dynamic([
-    'HASH'
+    'SHA256-HASH'
   ]);
 _ASim_RegistryEvent
 | where EventType in ('RegistryValueSet', 'RegistryKeyCreated') and RegistryKey has_any (startupRegistryList)
