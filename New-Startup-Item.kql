@@ -1,0 +1,18 @@
+//Set the full paths for startup items
+let startupFullPaths = dynamic([ 
+    "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp",
+    "C:\\Documents And Settings\\All Users\\Start Menu\\Programs\\StartUp",
+    "C:\\Windows\\Tasks"
+    ]);
+//Set an exclusion list for items that are expected
+let exclusionList = dynamic([
+    "EXCLUSION_ITEM",
+    ]);
+//Search for FileCreated events exlcuding the exclusionList and including the startupFullPaths list and regex paths
+DeviceFileEvents
+| where ActionType == "FileCreated"
+| where not (FileName has_any (exclusionList))
+| where FolderPath has_any(startupFullPaths)
+//Include file paths that have variable user names and requires regex
+   or FolderPath matches regex @"C:\\Users\\.*?\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
+   or FolderPath matches regex @"C:\\Documents and Settings\\.*?\\Start Menu\\Programs\\Startup"
