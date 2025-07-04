@@ -1,3 +1,5 @@
+//This KQL query identifies potentially suspicious modifications to common Windows startup registry keys by filtering out known legitimate processes, command lines, hash values, and registry data, helping detect unauthorized persistence attempts.
+
 // List of startup registry keys to monitor
 let startupRegistryList = dynamic([
     'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run',
