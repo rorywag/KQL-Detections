@@ -2,68 +2,53 @@
 
 // List of startup registry keys to monitor
 let startupRegistryList = dynamic([
-    'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run',
-    'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce',
-    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run',
-    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce',
-    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx',
-    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce',
-    'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce',
-    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunServices',
-    'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunServices',
-    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run',
-    'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run',
-    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Userinit',
-    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Shell',
-    'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows',
-    'HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager',
-    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run',
-    'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run',
-    'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders',
-    'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders',
-    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders',
-    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders',
-    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Run',
-    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\RunOnce',
-    'HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx'
+  // HKEY_CURRENT_USER - User-specific autostarts
+  'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run',
+  'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce',
+  'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunServices',
+  'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce',
+  'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run',
+  'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders',
+  'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders',
+  'HKEY_CURRENT_USER\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Windows',
+  // HKEY_LOCAL_MACHINE - Machine-wide autostarts
+  'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Run',
+  'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnce',
+  'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx',
+  'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunServices',
+  'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\RunServicesOnce',
+  'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\Explorer\\Run',
+  'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\Shell Folders',
+  'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Explorer\\User Shell Folders',
+  // HKEY_LOCAL_MACHINE - Winlogon-related autostarts
+  'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Shell',
+  'HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion\\Winlogon\\Userinit',
+  // HKEY_LOCAL_MACHINE - Boot-level autostarts
+  'HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager',
+  // Wow6432Node - 32-bit app equivalents
+  'HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Run',
+  'HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\RunOnce',
+  'HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx'
+]);
+//InitiatingProcessCommandLine Exclusion List 
+let exclusionList_IPCL = dynamic([
+    'ProcessCommandLineExclusions'
   ]);
-//The following let statements are used list items of known good to reduce noise and filter for suspicious entries
-//ActingProcessCommandLine Exclusion List 
-let exclusionList_APCL = dynamic([
-    'ACTINGPROCESSCOMMANDLINE'
-  ]);
-//ActingProcessName Exclusion List
-let exclusionList_APN = dynamic([
-    'ACTINGPROCESSNAME'
+//InitiatingProcessName Exclusion List
+let exclusionList_IPFN = dynamic([
+    'ProcessNameExclusions',
   ]);
 //RegistryValueData Exclusion List
 let exclusionList_RVD = dynamic([
-    'REGISTRYVALUEDATA'
+    'RegistryValueExclusions'
   ]);
- //ActingProcessSHA256 Exclusion List
-let exclusionList_APSHA256 = dynamic([
-    'SHA256-HASH'
+ //InitiatingProcessSHA256 Exclusion List
+let exclusionList_IPSHA256 = dynamic([
+    'SHA256HashExclusions'
   ]);
-_ASim_RegistryEvent
-| where EventType in ('RegistryValueSet', 'RegistryKeyCreated') and RegistryKey has_any (startupRegistryList)
-| where not (ActingProcessCommandLine has_any (exclusionList_APCL))
-| where not (ActingProcessName has_any(exclusionList_APN))
-| where not (RegistryValueData has_any(exclusionList_RVD))
-| where not (ActingProcessSHA256 has_any(exclusionList_APSHA256))
-| project
-Timestamp,
-ReportId,
-DeviceName,
-DeviceId,
-User,
-UserId,
-EventType,
-RegistryKey,
-RegistryValueName,
-RegistryValueType,
-RegistryValueData,
-ActingProcessFileName,
-ActingProcessSHA256,
-ActingProcessCommandLine,
-ParentProcessName,
-ParentProcessCreationTime
+DeviceRegistryEvents
+| where ActionType in ('RegistryValueSet', 'RegistryKeyCreated') and tostring(RegistryKey) has_any (startupRegistryList)
+| where not (tostring(InitiatingProcessCommandLine) has_any (exclusionList_IPCL))
+| where not (tostring(InitiatingProcessFileName) has_any(exclusionList_IPFN))
+| where not (tostring(RegistryValueData) has_any(exclusionList_RVD))
+| where not (tostring(InitiatingProcessSHA256) has_any(exclusionList_IPSHA256))
