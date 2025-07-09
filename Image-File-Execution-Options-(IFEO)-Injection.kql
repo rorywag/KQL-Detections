@@ -1,0 +1,4 @@
+DeviceRegistryEvents
+| where RegistryKey startswith @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options"
+    or RegistryKey startswith @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit"
+| where RegistryValueName in~ ("Debugger", "GlobalFlag", "ReportingMode", "MonitorProcess")
