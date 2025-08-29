@@ -2,42 +2,20 @@
 
 ## Query Information
 
-#### MITRE ATT&CK Technique(s)
+// Name: [Detection Name Here]
 
-| Technique ID | Title    | Link    |
-| ---  | --- | --- |
-| T1134.002 | Access Token Manipulation: Create Process with Token | https://attack.mitre.org/techniques/T1134/002/ |
+// Author: Rory
 
-#### Description
-Description of the detection rule.
+// Date: [YYYY-MM-DD]
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+// Description: [Brief but clear explanation of what this rule detects, why it matters, and attacker behaviors it relates to. Keep it short but informative — one to three sentences is ideal.]
 
-#### Risk
-Explain what risk this detection tries to cover
+// Reference: [Optional: Link(s) to MITRE ATT&CK, research blogs, vendor writeups, or official docs]
 
-#### Author <Optional>
-- **Name:**
-- **Github:**
-- **Twitter:**
-- **LinkedIn:**
-- **Website:**
+// Tactic: [MITRE ATT&CK Tactic e.g., Persistence, Initial Access, Defense Evasion, etc.]
 
-#### References
-- https://kqlquery.com/
-- https://github.com/Bert-JanP/Hunting-Queries-Detection-Rules
-- example link 3
+// Technique: [MITRE ATT&CK Technique ID and name, e.g., T1547.001, Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder]
 
-## Defender XDR
-```KQL
-// Paste your query here
-DeviceProcessEvents
-| where FileName == "Example.File"
-```
+// [Optional: Add comments above logic blocks explaining exclusions, FP considerations, etc.]
 
-## Sentinel
-```KQL
-// Paste your query here
-DeviceProcessEvents
-| where FileName == "Example.File"
-```
+[--- PASTE YOUR KQL RULE HERE ---]
