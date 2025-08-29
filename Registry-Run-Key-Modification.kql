@@ -1,4 +1,10 @@
-//This KQL query identifies potentially suspicious modifications to common Windows startup registry keys by filtering out known legitimate processes, command lines, hash values, and registry data, helping detect unauthorized persistence attempts.
+// Name: Suspicious Modifications to Windows Startup Registry Keys
+// Author: Rory Wagner (Sleuthifer)
+// Date: 2025-08-29
+// Description: This detection identifies potentially suspicious modifications to common Windows startup registry keys. Adversaries frequently abuse these registry locations for persistence, ensuring malicious executables run automatically at user logon or system startup. To reduce false positives, the rule filters out known legitimate processes, command lines, registry data, and file hashes via exclusion lists.
+// Reference: https://attack.mitre.org/techniques/T1547/001/, https://learn.microsoft.com/en-us/sysinternals/downloads/autoruns
+// Tactic: Persistence
+// Technique: T1547.001, Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder
 
 // List of startup registry keys to monitor
 let startupRegistryList = dynamic([
@@ -30,25 +36,17 @@ let startupRegistryList = dynamic([
   'HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\RunOnce',
   'HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\RunOnceEx'
 ]);
-//InitiatingProcessCommandLine Exclusion List 
-let exclusionList_IPCL = dynamic([
-    'ProcessCommandLineExclusions'
-  ]);
-//InitiatingProcessName Exclusion List
-let exclusionList_IPFN = dynamic([
-    'ProcessNameExclusions',
-  ]);
-//RegistryValueData Exclusion List
-let exclusionList_RVD = dynamic([
-    'RegistryValueExclusions'
-  ]);
- //InitiatingProcessSHA256 Exclusion List
-let exclusionList_IPSHA256 = dynamic([
-    'SHA256HashExclusions'
-  ]);
+
+// Exclusion lists to reduce false positives from known-good processes, commands, or registry data
+let exclusionList_IPCL = dynamic(['ProcessCommandLineExclusions']);  // InitiatingProcessCommandLine exclusions
+let exclusionList_IPFN = dynamic(['ProcessNameExclusions']);         // InitiatingProcessFileName exclusions
+let exclusionList_RVD = dynamic(['RegistryValueExclusions']);        // RegistryValueData exclusions
+let exclusionList_IPSHA256 = dynamic(['SHA256HashExclusions']);      // File hash exclusions
+
 DeviceRegistryEvents
-| where ActionType in ('RegistryValueSet', 'RegistryKeyCreated') and tostring(RegistryKey) has_any (startupRegistryList)
+| where ActionType in ('RegistryValueSet', 'RegistryKeyCreated') 
+  and tostring(RegistryKey) has_any (startupRegistryList)
 | where not (tostring(InitiatingProcessCommandLine) has_any (exclusionList_IPCL))
-| where not (tostring(InitiatingProcessFileName) has_any(exclusionList_IPFN))
-| where not (tostring(RegistryValueData) has_any(exclusionList_RVD))
-| where not (tostring(InitiatingProcessSHA256) has_any(exclusionList_IPSHA256))
+| where not (tostring(InitiatingProcessFileName) has_any (exclusionList_IPFN))
+| where not (tostring(RegistryValueData) has_any (exclusionList_RVD))
+| where not (tostring(InitiatingProcessSHA256) has_any (exclusionList_IPSHA256))
