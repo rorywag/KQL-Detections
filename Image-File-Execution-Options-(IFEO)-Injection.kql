@@ -1,3 +1,11 @@
+// Name: Potential Persistence via IFEO and SilentProcessExit Registry Keys
+// Author: Rory Wagner (Sleuthifer)
+// Date: 2025-08-29
+// Description: This detection identifies suspicious modifications to the `Image File Execution Options (IFEO)` and `SilentProcessExit` registry keys. Attackers commonly abuse these keys for persistence, evasion, or process injection by setting values such as `Debugger`, `GlobalFlag`, `ReportingMode`, and `MonitorProcess`. Monitoring these changes helps surface attempts at persistence or stealthy process monitoring.
+// Reference: https://attack.mitre.org/techniques/T1546/012/, https://persistence-info.github.io/Data/ifeo.html
+// Tactic: Persistence
+// Technique: T1546.012, Event Triggered Execution: Image File Execution Options Injection
+
 DeviceRegistryEvents
 | where RegistryKey startswith @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options"
     or RegistryKey startswith @"HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\SilentProcessExit"
