@@ -4,7 +4,7 @@
 
 // Name: [Detection Name Here]
 
-// Author: Rory
+// Author: [Author Name]
 
 // Date: [YYYY-MM-DD]
 
