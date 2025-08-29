@@ -42,7 +42,6 @@ let exclusionList_IPCL = dynamic(['ProcessCommandLineExclusions']);  // Initiati
 let exclusionList_IPFN = dynamic(['ProcessNameExclusions']);         // InitiatingProcessFileName exclusions
 let exclusionList_RVD = dynamic(['RegistryValueExclusions']);        // RegistryValueData exclusions
 let exclusionList_IPSHA256 = dynamic(['SHA256HashExclusions']);      // File hash exclusions
-
 DeviceRegistryEvents
 | where ActionType in ('RegistryValueSet', 'RegistryKeyCreated') 
   and tostring(RegistryKey) has_any (startupRegistryList)
