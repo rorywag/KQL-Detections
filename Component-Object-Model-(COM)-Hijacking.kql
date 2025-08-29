@@ -1,7 +1,14 @@
-//Identifying COM hijacking via InprocServer32 and LocalServer32 (especially by .NET or PowerShell-based malware), and uncommon registry-based persistence through keys like DelegateExecute, TreatAs, and ScriptletURL.
-//https://bohops.com/2018/06/28/abusing-com-registry-structure-clsid-localserver32-inprocserver32/
-//https://bohops.com/2018/08/18/abusing-the-com-registry-structure-part-2-loading-techniques-for-evasion-and-persistence/
-//https://www.elastic.co/docs/reference/security/prebuilt-rules/rules/windows/persistence_suspicious_com_hijack_registry
+// Name: Potential COM Hijacking and Registry-Based Persistence
+// Author: Rory Wagner (Sleuthifer)
+// Date: 2025-08-29
+// Description: This detection identifies potential COM hijacking via `InprocServer32` and `LocalServer32` keys, particularly abused by .NET or PowerShell-based malware. 
+// It also looks for uncommon registry-based persistence through suspicious keys such as `DelegateExecute`, `TreatAs`, and `ScriptletURL`. 
+// These techniques have been observed as persistence and evasion mechanisms by attackers leveraging COM registry structure.
+// Reference: https://bohops.com/2018/06/28/abusing-com-registry-structure-clsid-localserver32-inprocserver32/
+// Reference: https://bohops.com/2018/08/18/abusing-the-com-registry-structure-part-2-loading-techniques-for-evasion-and-persistence/
+// Reference: https://www.elastic.co/docs/reference/security/prebuilt-rules/rules/windows/persistence_suspicious_com_hijack_registry
+// Tactic: Persistence
+// Technique: T1546.015, Event Triggered Execution: Component Object Model Hijacking
 
 let dotNetOrPowerShellPersistence =
     DeviceRegistryEvents
@@ -9,6 +16,7 @@ let dotNetOrPowerShellPersistence =
     | where RegistryKey has_any ("HKEY_CURRENT_USER", "HKEY_USERS")
     | where RegistryKey has_any ("LocalServer32", "InprocServer32")
     | where InitiatingProcessAccountDomain != "nt authority"
+    // Focused on processes tied to .NET or PowerShell (common abuse for COM hijacking)
     | where InitiatingProcessVersionInfoProductName has_any (".NET", "powershell")
         or InitiatingProcessVersionInfoInternalFileName has_any (".NET", "powershell")
         or InitiatingProcessVersionInfoOriginalFileName has_any (".NET", "powershell")
@@ -19,6 +27,7 @@ let suspiciousKeyPersistence =
     | where RegistryKey has_any ("HKEY_CURRENT_USER", "HKEY_USERS")
     | where RegistryKey has_any ("DelegateExecute", "TreatAs", "ScriptletURL")
     | where InitiatingProcessAccountDomain != "nt authority"
+    // Keys like DelegateExecute, TreatAs, and ScriptletURL are uncommon and strongly linked to persistence
     | extend DetectionType = "Uncommon Persistence Key";
 dotNetOrPowerShellPersistence
 | union suspiciousKeyPersistence
