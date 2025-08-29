@@ -1,20 +1,26 @@
-//This KQL query detects file creation events in common Windows startup directories—both fixed and user-specific—excluding known legitimate items, to help identify potentially unauthorized persistence mechanisms.
+// Name: Suspicious File Creation in Windows Startup Directories
+// Author: Rory Wagner (Sleuthifer)
+// Date: 2025-08-29
+// Description: This detection identifies file creation events within common Windows startup directories, including both system-wide and user-specific paths. These locations are frequently abused by adversaries for persistence since files placed here will automatically execute at user login. The query excludes known legitimate items defined in an exclusion list to reduce false positives.
+// Reference: https://attack.mitre.org/techniques/T1547/001/, https://learn.microsoft.com/en-us/windows/win32/setupapi/run-and-runonce-registry-keys
+// Tactic: Persistence
+// Technique: T1547.001, Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder
 
-//Set the full paths for startup items
+// Set the full paths for startup items
 let startupFullPaths = dynamic([ 
     "C:\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\StartUp",
     "C:\\Documents And Settings\\All Users\\Start Menu\\Programs\\StartUp",
     "C:\\Windows\\Tasks"
-    ]);
-//Set an exclusion list for items that are expected
+]);
+// Set an exclusion list for items that are expected (reduce noise by adding known-good startup items here)
 let exclusionList = dynamic([
     "EXCLUSION_ITEM"
-    ]);
-//Search for FileCreated events exlcuding the exclusionList and including the startupFullPaths list and regex paths
+]);
+// Search for FileCreated events in startup directories, excluding known items
 DeviceFileEvents
 | where ActionType == "FileCreated"
 | where not (FileName has_any (exclusionList))
 | where FolderPath has_any(startupFullPaths)
-//Include file paths that have variable user names and requires regex
+// Include regex-based paths for user-specific startup folders
    or FolderPath matches regex @"C:\\Users\\.*?\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
    or FolderPath matches regex @"C:\\Documents and Settings\\.*?\\Start Menu\\Programs\\Startup"
