@@ -1,0 +1,16 @@
+// Name: Guest Account Activated
+// Author: Rory Wagner (Sleuthifer)
+// Date: 2025-10-15
+// Description: This detection identifies the activation or modification of Guest accounts or Guest group memberships, which may indicate unauthorized access attempts or privilege escalation. 
+// Analysts should review the initiating user (SubjectUserName) and process context. Confirm whether the Guest account is expected to be active on the system. Investigate the host for signs of lateral movement or privilege abuse. 
+// Correlate with logon events and group membership changes. Escalate if Guest account activation is unexpected or unauthorized.
+// Reference: https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4722
+// Reference: https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4738
+// Reference: https://learn.microsoft.com/en-us/windows/security/threat-protection/auditing/event-4724
+// Tactic: Privilege Escalation
+// Technique: T1078.001, Valid Accounts: Local Accounts
+
+SecurityEvent
+| where EventID in (4722, 4724, 4738)
+| where TargetSid has_any ("-501", "-514", "S-1-5-32-546") // Local, Domain, Built-in Guests
+| extend DetectionType = "Guest Account Activation or Modification"
