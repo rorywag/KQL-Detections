@@ -1,10 +1,10 @@
-// Name: Suspicious File Creation in Windows Startup Directories
+// Name: Suspicious Shortcut and File Creation in Windows Startup Directories
 // Author: Rory Wagner (Sleuthifer)
 // Date: 2025-08-29
-// Description: This detection identifies file creation events within common Windows startup directories, including both system-wide and user-specific paths. These locations are frequently abused by adversaries for persistence since files placed here will automatically execute at user login. The query excludes known legitimate items defined in an exclusion list to reduce false positives.
-// Reference: https://attack.mitre.org/techniques/T1547/001/, https://learn.microsoft.com/en-us/windows/win32/setupapi/run-and-runonce-registry-keys
+// Description: This detection identifies file creation events within common Windows startup directories and enriches them with Windows Shell Link (shortcut) creation activity. Startup folders are frequently abused by adversaries for persistence since files or shortcuts placed here automatically execute at user login. The query covers both system-wide and user-specific startup paths and can exclude known legitimate items via an exclusion list to reduce false positives.
+// Reference: https://attack.mitre.org/techniques/T1547/009/, https://learn.microsoft.com/en-us/windows/win32/shell/links
 // Tactic: Persistence
-// Technique: T1547.001, Boot or Logon Autostart Execution: Registry Run Keys / Startup Folder
+// Technique: T1547.009, Boot or Logon Autostart Execution: Shortcut Modification
 
 // Set the full paths for startup items
 let startupFullPaths = dynamic([ 
@@ -16,11 +16,19 @@ let startupFullPaths = dynamic([
 let exclusionList = dynamic([
     "EXCLUSION_ITEM"
 ]);
-// Search for FileCreated events in startup directories, excluding known items
+// Search for FileCreated events in startup directories, excluding known items and enrich with Shell Link creation activity
 DeviceFileEvents
 | where ActionType == "FileCreated"
 | where not (FileName has_any (exclusionList))
-| where FolderPath has_any(startupFullPaths)
-// Include regex-based paths for user-specific startup folders
-   or FolderPath matches regex @"C:\\Users\\.*?\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
-   or FolderPath matches regex @"C:\\Documents and Settings\\.*?\\Start Menu\\Programs\\Startup"
+| where
+    FolderPath has_any(startupFullPaths)
+    or FolderPath matches regex @"C:\\Users\\.*?\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
+    or FolderPath matches regex @"C:\\Documents and Settings\\.*?\\Start Menu\\Programs\\Startup"
+| join kind=leftouter (
+    DeviceEvents
+    | where ActionType == "ShellLinkCreateFileEvent"
+    | where
+        FolderPath has_any(startupFullPaths)
+        or FolderPath matches regex @"C:\\Users\\.*?\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup"
+        or FolderPath matches regex @"C:\\Documents and Settings\\.*?\\Start Menu\\Programs\\Startup"
+) on DeviceId
