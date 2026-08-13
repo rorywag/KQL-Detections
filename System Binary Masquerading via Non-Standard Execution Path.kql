@@ -5,8 +5,7 @@
 // Binaries such as `lsass.exe`, `winlogon.exe`, `services.exe` and `svchost.exe` are never legitimately relocated or bundled
 // by third-party software, so execution from an unexpected path indicates an adversary has placed a renamed payload to blend
 // in with normal process listings. The composite name and path check catches relocation while permitting the genuine
-// SysWOW64 copy of `svchost.exe`. Scope is limited to Windows endpoints, as Wine reimplements several of these binary names
-// under its prefixes on macOS and Linux.
+// SysWOW64 copy of `svchost.exe`. Scope is limited to Windows endpoints.
 // Reference: https://attack.mitre.org/techniques/T1036/005/
 // Reference: https://www.microsoft.com/en-us/security/blog/2022/10/18/defenders-beware-a-case-for-post-ransomware-investigations/
 // Tactic: Defense Evasion
