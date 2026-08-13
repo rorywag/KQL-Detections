@@ -1,0 +1,81 @@
+// Name: System Binary Masquerading via Non-Standard Execution Path
+// Author: Rory Wagner (Sleuthifer)
+// Date: 2026-08-14
+// Description: This detection identifies core Windows subsystem binaries executing from any location other than System32.
+// Binaries such as `lsass.exe`, `winlogon.exe`, `services.exe` and `svchost.exe` are never legitimately relocated or bundled
+// by third-party software, so execution from an unexpected path indicates an adversary has placed a renamed payload to blend
+// in with normal process listings. The composite name and path check catches relocation while permitting the genuine
+// SysWOW64 copy of `svchost.exe`. Scope is limited to Windows endpoints, as Wine reimplements several of these binary names
+// under its prefixes on macOS and Linux.
+// Reference: https://attack.mitre.org/techniques/T1036/005/
+// Reference: https://www.microsoft.com/en-us/security/blog/2022/10/18/defenders-beware-a-case-for-post-ransomware-investigations/
+// Reference: https://redcanary.com/threat-detection-report/techniques/masquerading/
+// Tactic: Defense Evasion
+// Technique: T1036.005, Masquerading: Match Legitimate Name or Location
+//
+// Note: the DeviceInfo join means this rule is not NRT-eligible. Run scheduled,
+// and match the rule lookback to the run frequency.
+let NonWindowsDevices =
+    DeviceInfo
+    | where Timestamp > ago(30d)
+    // arg_max handles the multiple-rows-per-device shape, and the rare case
+    // of a device being reimaged onto a different OS.
+    | summarize arg_max(Timestamp, OSPlatform) by DeviceId
+    // Only exclude devices positively known to be non-Windows. Blanks
+    // (NetworkDevice, IoT) and devices with no recent DeviceInfo row stay in
+    // scope, so the rule fails open rather than silently dropping events.
+    | where isnotempty(OSPlatform) and OSPlatform !startswith "Windows"
+    | distinct DeviceId;
+let SubsystemBinaries = dynamic([
+    "smss.exe","csrss.exe","wininit.exe","winlogon.exe",
+    "services.exe","lsass.exe","lsaiso.exe","svchost.exe"
+]);
+DeviceProcessEvents
+// Fast indexed prefilter, before any string manipulation.
+| where FileName has_any (SubsystemBinaries)
+| extend LowerName = tolower(FileName), LowerPath = tolower(FolderPath)
+// Exact match. has_any is a term match and would let through "notsvchost.exe".
+| where LowerName in (SubsystemBinaries)
+// FolderPath sometimes carries the file name and sometimes does not,
+// depending on sensor version. Normalise both shapes to a bare directory.
+| extend Dir = iff(LowerPath endswith strcat(@"\", LowerName),
+                   substring(LowerPath, 0, strlen(LowerPath) - strlen(LowerName) - 1),
+                   LowerPath)
+| extend Dir = trim_end(@"\\+", Dir)
+// Early-boot processes (smss, csrss, wininit) can report device paths before
+// drive letters are assigned. Normalise rather than exclude, so a genuine hit
+// from a device path still fires.
+| extend Dir = replace_regex(Dir, @"^\\device\\harddiskvolume\d+", "c:")
+| extend Dir = replace_regex(Dir, @"^\\\\\?\\volume\{[0-9a-f\-]+\}", "c:")
+| where DeviceId !in (NonWindowsDevices)
+// Composite key: the name and location pairing is what matters, not either
+// value on its own.
+| extend PathKey = strcat(LowerName, "|", Dir)
+| where PathKey !in (
+    "smss.exe|c:\\windows\\system32",
+    "csrss.exe|c:\\windows\\system32",
+    "wininit.exe|c:\\windows\\system32",
+    "winlogon.exe|c:\\windows\\system32",
+    "services.exe|c:\\windows\\system32",
+    "lsass.exe|c:\\windows\\system32",
+    "lsaiso.exe|c:\\windows\\system32",
+    // svchost is the only one of the eight with a legitimate 32-bit copy.
+    "svchost.exe|c:\\windows\\system32",
+    "svchost.exe|c:\\windows\\syswow64"
+  )
+// Servicing and upgrade locations. Rarely hit, since this table records
+// execution rather than files on disk, but cheap to keep.
+| where Dir !startswith @"c:\windows\winsxs"
+    and Dir !startswith @"c:\windows.old"
+    and Dir !startswith @"c:\$windows.~bt"
+    and Dir !has "harddiskvolumeshadowcopy"
+// Triage aid, not a filter. User-writable locations are where real
+// intrusions place these files.
+| extend UserWritable = Dir has_any (@"\users\", @"\programdata\", @"\temp\",
+                                     @"\public\", @"\appdata\", @"\perflogs\")
+| project Timestamp, DeviceName, DeviceId, AccountName = AccountUpn, AccountSid,
+          FileName, FolderPath, SHA256, ProcessCommandLine,
+          InitiatingProcessFileName, InitiatingProcessFolderPath,
+          InitiatingProcessCommandLine, InitiatingProcessAccountUpn,
+          UserWritable
+| order by Timestamp desc
