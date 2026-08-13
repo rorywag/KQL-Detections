@@ -9,7 +9,6 @@
 // under its prefixes on macOS and Linux.
 // Reference: https://attack.mitre.org/techniques/T1036/005/
 // Reference: https://www.microsoft.com/en-us/security/blog/2022/10/18/defenders-beware-a-case-for-post-ransomware-investigations/
-// Reference: https://redcanary.com/threat-detection-report/techniques/masquerading/
 // Tactic: Defense Evasion
 // Technique: T1036.005, Masquerading: Match Legitimate Name or Location
 //
