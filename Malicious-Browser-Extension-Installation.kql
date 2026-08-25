@@ -18,7 +18,7 @@
 
 // Populate per tenant. Leave empty to run unfiltered.
 let AllowedExtensions = dynamic([
-    // "abcdefghijklmnopabcdefghijklmnop",   // sanctioned password manager
+    // "abcdefghijklmnopabcdefghijklmnop",   // sanctioned extension
 ]);
 let lookback = 30d;
 let ExtSentry =
