@@ -33,23 +33,17 @@ let ExtSentry =
 union
     (DeviceFileEvents
     | where TimeGenerated > ago(lookback)
-    | where FolderPath has_any (@"\Extensions\", @"\Local Extension Settings\", @"\Sync Extension Settings\",
-                                @"\Managed Extension Settings\", @"\Extension Rules\", @"\Extension Scripts\",
-                                @"\Extension State\", "chrome-extension_")
+    | where FolderPath has_any (@"\Extensions\", @"\Local Extension Settings\", @"\Sync Extension Settings\", @"\Managed Extension Settings\", @"\Extension Rules\", @"\Extension Scripts\", @"\Extension State\", "chrome-extension_")
     | project TimeGenerated, DeviceName, Id = extract(@"([a-p]{32})", 1, FolderPath),
               Source = "File", TouchedBy = InitiatingProcessFileName, Detail = FolderPath),
     (DeviceRegistryEvents
     | where TimeGenerated > ago(lookback)
-    | where RegistryKey has_any (@"\Chrome\Extensions", @"\Edge\Extensions", @"\Brave\Extensions",
-                                 @"\Vivaldi\Extensions", @"\Opera Software",
-                                 "ExtensionInstallForcelist", "ExtensionSettings", "ExtensionInstallAllowlist")
+    | where RegistryKey has_any (@"\Chrome\Extensions", @"\Edge\Extensions", @"\Brave\Extensions", @"\Vivaldi\Extensions", @"\Opera Software", "ExtensionInstallForcelist", "ExtensionSettings", "ExtensionInstallAllowlist")
     | project TimeGenerated, DeviceName, Id = extract(@"([a-p]{32})", 1, strcat(RegistryKey, RegistryValueData)),
               Source = "Registry", TouchedBy = InitiatingProcessFileName, Detail = RegistryKey),
     (DeviceProcessEvents
     | where TimeGenerated > ago(lookback)
-    | where ProcessVersionInfoOriginalFileName in~ ("chrome.exe", "msedge.exe", "brave.exe", "opera.exe",
-                                                    "vivaldi.exe", "chromium.exe", "browser.exe",
-                                                    "whale.exe", "Arc.exe", "Comet.exe")
+    | where ProcessVersionInfoOriginalFileName in~ ("chrome.exe", "msedge.exe", "brave.exe", "opera.exe", "vivaldi.exe", "chromium.exe", "browser.exe", "whale.exe", "Arc.exe", "Comet.exe")
          or ProcessVersionInfoProductName has "Chromium"
     | where ProcessCommandLine has_any ("--load-extension", "--disable-extensions-except")
     | project TimeGenerated, DeviceName, Id = extract(@"([a-p]{32})", 1, ProcessCommandLine),
