@@ -1,0 +1,64 @@
+// Name: Malicious Browser Extension Installation
+// Author: Rory Wagner (Sleuthifer)
+// Date: 2026-08-26
+// Description: This detection identifies Chromium-based browser extensions matching known-malicious extension IDs from the
+// ExtSentry IOC feed. Adversaries and commodity malware families sideload extensions to steal session cookies, intercept
+// credentials, and maintain persistence inside the browser, where the activity survives endpoint remediation that does not
+// touch the browser profile. The rule covers three installation paths: files written to the extension directories, registry
+// registration and policy-based force-install, and command-line sideloading via --load-extension. Wallet and password
+// manager extensions are excluded upstream as sensitive rather than malicious.
+// Reference: https://attack.mitre.org/techniques/T1176/001/
+// Reference: https://extsentry.github.io/
+// Tactic: Persistence
+// Technique: T1176.001, Software Extensions: Browser Extensions
+//
+// Note: externaldata is not supported in NRT/Continuous frequency custom detections. Run scheduled.
+// Note: the feed is fetched from main at query time and updates upstream without notice, so detection
+// scope changes as the feed changes. Validate the CSV column order periodically.
+
+// Populate per tenant. Leave empty to run unfiltered.
+let AllowedExtensions = dynamic([
+    // "abcdefghijklmnopabcdefghijklmnop",   // sanctioned password manager
+]);
+let lookback = 30d;
+let ExtSentry =
+    externaldata(extension_id:string, extension_name:string, wildcard_pattern:string,
+        category:string, threat_type:string, reference_url:string, description:string,
+        chrome_webstore_url:string, severity:string, crx_sha256:string,
+        first_seen:string, feed_source:string)
+    [@"https://raw.githubusercontent.com/ExtSentry/ExtSentry.github.io/main/feeds/extsentry_ioc_feed.csv"]
+    with (format="csv", ignoreFirstRecord=true)
+    | where extension_id != "browser_extension_id"        // upstream placeholder row
+    | where threat_type !in~ ("sensitive", "privacy");    // wallets, password managers
+union
+    (DeviceFileEvents
+    | where TimeGenerated > ago(lookback)
+    | where FolderPath has_any (@"\Extensions\", @"\Local Extension Settings\", @"\Sync Extension Settings\",
+                                @"\Managed Extension Settings\", @"\Extension Rules\", @"\Extension Scripts\",
+                                @"\Extension State\", "chrome-extension_")
+    | project TimeGenerated, DeviceName, Id = extract(@"([a-p]{32})", 1, FolderPath),
+              Source = "File", TouchedBy = InitiatingProcessFileName, Detail = FolderPath),
+    (DeviceRegistryEvents
+    | where TimeGenerated > ago(lookback)
+    | where RegistryKey has_any (@"\Chrome\Extensions", @"\Edge\Extensions", @"\Brave\Extensions",
+                                 @"\Vivaldi\Extensions", @"\Opera Software",
+                                 "ExtensionInstallForcelist", "ExtensionSettings", "ExtensionInstallAllowlist")
+    | project TimeGenerated, DeviceName, Id = extract(@"([a-p]{32})", 1, strcat(RegistryKey, RegistryValueData)),
+              Source = "Registry", TouchedBy = InitiatingProcessFileName, Detail = RegistryKey),
+    (DeviceProcessEvents
+    | where TimeGenerated > ago(lookback)
+    | where ProcessVersionInfoOriginalFileName in~ ("chrome.exe", "msedge.exe", "brave.exe", "opera.exe",
+                                                    "vivaldi.exe", "chromium.exe", "browser.exe",
+                                                    "whale.exe", "Arc.exe", "Comet.exe")
+         or ProcessVersionInfoProductName has "Chromium"
+    | where ProcessCommandLine has_any ("--load-extension", "--disable-extensions-except")
+    | project TimeGenerated, DeviceName, Id = extract(@"([a-p]{32})", 1, ProcessCommandLine),
+              Source = "Process", TouchedBy = InitiatingProcessFileName, Detail = ProcessCommandLine)
+| where isnotempty(Id)
+| where Id !in (AllowedExtensions)
+| lookup kind=inner ExtSentry on $left.Id == $right.extension_id
+| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Hits = count(),
+            Sources = make_set(Source), TouchedBy = make_set(TouchedBy, 8),
+            SampleDetail = take_any(Detail)
+        by DeviceName, Id, extension_name, category, severity
+| sort by LastSeen desc
