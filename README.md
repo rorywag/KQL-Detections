@@ -27,5 +27,5 @@ to fit your data. These are a starting point, not drop-in rules.
 
 ## Author
 
-Rory Wagner - @Sleuthifer
+Rory Wagner - @Sleuthifer  
 https://www.linkedin.com/in/rorywagner/
